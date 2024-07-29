@@ -9,19 +9,27 @@ mod vial;
 
 use crate::keymap::{COL, NUM_LAYER, ROW};
 use analog_multiplexer::{DummyPin, Multiplexer};
-use embassy_stm32::{adc::{Adc, Temperature, VrefInt}, flash::{Blocking, Flash}, gpio::{Level, Output, Pin, Speed, Input}, peripherals::USB_OTG_FS, usb::{Config as UsbConfig, Driver, InterruptHandler}, Peripherals};
 use defmt::*;
 use defmt_rtt as _;
 use embassy_executor::Spawner;
 use embassy_stm32::{
-    bind_interrupts,
-    Config,
+    adc::{Adc, Temperature, VrefInt},
+    flash::{Blocking, Flash},
+    gpio::{Input, Level, Output, Pin, Speed},
+    peripherals::USB_OTG_FS,
+    usb::{Config as UsbConfig, Driver, InterruptHandler},
+    Peripherals,
 };
+use embassy_stm32::{bind_interrupts, Config};
 use embassy_time::Delay;
 use panic_probe as _;
 //use panic_halt as _;
 //use rmk::{config::{RmkConfig, VialConfig}, embedded_hal::delay::DelayNs, initialize_keyboard_and_run};
-use rmk::{config::{RmkConfig, VialConfig}, embedded_hal::delay::DelayNs, initialize_keyboard_and_run};
+use rmk::{
+    config::{RmkConfig, VialConfig},
+    embedded_hal::delay::DelayNs,
+    initialize_keyboard_and_run,
+};
 use static_cell::StaticCell;
 use vial::{VIAL_KEYBOARD_DEF, VIAL_KEYBOARD_ID};
 
@@ -49,11 +57,17 @@ async fn main(spawner: Spawner) {
     static EP_OUT_BUFFER: StaticCell<[u8; 1024]> = StaticCell::new();
     let mut usb_config = UsbConfig::default();
     usb_config.vbus_detection = true;
-    let driver = Driver::new_fs(p.USB_OTG_FS, Irqs, p.PA12, p.PA11, &mut EP_OUT_BUFFER.init([0; 1024])[..], usb_config);
+    let driver = Driver::new_fs(
+        p.USB_OTG_FS,
+        Irqs,
+        p.PA12,
+        p.PA11,
+        &mut EP_OUT_BUFFER.init([0; 1024])[..],
+        usb_config,
+    );
 
     // Pin config
     let (input_pins, output_pins) = config_matrix_pins_stm32!(peripherals: p, input: [PD9, PD8, PB13, PB12], output: [PE13, PE14, PE15]);
-
 
     // Use internal flash to emulate eeprom
     let f = Flash::new_blocking(p.FLASH);
@@ -130,7 +144,6 @@ async fn scan_multiplexers(p: Peripherals) {
                 DEFAULT_KEYSTATES[channel * multi] = sample;
             }
         }
-
     }
 
     loop {
@@ -149,7 +162,6 @@ async fn scan_multiplexers(p: Peripherals) {
                     KEYSTATES[channel * multi] = sample;
                 }
             }
-
         }
     }
 }
