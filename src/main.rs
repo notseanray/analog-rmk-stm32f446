@@ -7,22 +7,22 @@ mod macros;
 mod keymap;
 mod vial;
 
-use core::ptr::addr_of_mut;
-
 use crate::keymap::{COL, NUM_LAYER, ROW};
 use cortex_m::singleton;
-use embassy_stm32::{adc::{Adc, RingBufferedAdc, SampleTime, Sequence}, peripherals::USB_OTG_FS, usb::{Config as UsbConfig, Driver, InterruptHandler}, Peripherals};
+use embassy_stm32::{adc::{Adc, RingBufferedAdc, SampleTime, Sequence, VrefInt}, flash::{Blocking, Flash}, gpio::Pin, peripherals::USB_OTG_FS, usb::{Config as UsbConfig, Driver, InterruptHandler}, Peripherals};
 use defmt::*;
 use defmt_rtt as _;
 use embassy_executor::Spawner;
 use embassy_stm32::{
     bind_interrupts,
-    flash::{Blocking, Flash},
     gpio::{AnyPin, Input, Output},
     Config,
 };
+use embassy_time::Delay;
 use panic_probe as _;
-//use rmk::{initialize_keyboard_and_run, config::{RmkConfig, VialConfig}};
+//use panic_halt as _;
+//use rmk::{config::{RmkConfig, VialConfig}, embedded_hal::delay::DelayNs, initialize_keyboard_and_run};
+use rmk::{config::{RmkConfig, VialConfig}, embedded_hal::delay::DelayNs, initialize_keyboard_and_run};
 use static_cell::StaticCell;
 use vial::{VIAL_KEYBOARD_DEF, VIAL_KEYBOARD_ID};
 
@@ -30,15 +30,13 @@ bind_interrupts!(struct Irqs {
     OTG_FS => InterruptHandler<USB_OTG_FS>;
 });
 
-static mut ADC1_DMA_BUF: [u16; 5] = [0u16; 5];
 
 #[embassy_executor::main]
-async fn main(spawner: Spawner) {
-    let p = embassy_stm32::init(Default::default());
-    spawner.must_spawn(adc_task(p));
+async fn main(_spawner: Spawner) {
     info!("RMK start!");
     // RCC config
     let config = Config::default();
+    let mut delay = Delay;
 
     // Initialize peripherals
     let p = embassy_stm32::init(config);
@@ -49,13 +47,17 @@ async fn main(spawner: Spawner) {
     usb_config.vbus_detection = true;
     let driver = Driver::new_fs(p.USB_OTG_FS, Irqs, p.PA12, p.PA11, &mut EP_OUT_BUFFER.init([0; 1024])[..], usb_config);
 
+    let adc = Adc::new(p.ADC1);
+    // stabilize voltage readings
+    delay.delay_us(VrefInt::start_time_us());
+
     // Pin config
-    //let (input_pins, output_pins) = config_matrix_pins_stm32!(peripherals: p, input: [PD9, PD8, PB13, PB12], output: [PE13, PE14, PE15]);
+    let (input_pins, output_pins) = config_matrix_pins_stm32!(peripherals: p, input: [PD9, PD8, PB13, PB12], output: [PE13, PE14, PE15]);
+
 
     // Use internal flash to emulate eeprom
-    //let f = Flash::new_blocking(p.FLASH);
+    let f = Flash::new_blocking(p.FLASH);
 
-    /*
     // Keyboard config
     let keyboard_config = RmkConfig {
         vial_config: VialConfig::new(VIAL_KEYBOARD_ID, VIAL_KEYBOARD_DEF),
@@ -66,8 +68,8 @@ async fn main(spawner: Spawner) {
     initialize_keyboard_and_run::<
         Flash<'_, Blocking>,
         Driver<'_, USB_OTG_FS>,
-        Input<'_, AnyPin>,
-        Output<'_, AnyPin>,
+        Input<'_>,
+        Output<'_>,
         ROW,
         COL,
         NUM_LAYER,
@@ -80,8 +82,11 @@ async fn main(spawner: Spawner) {
         keyboard_config,
     )
     .await;
-    */
 }
+/*
+static mut ADC1_DMA_BUF: [u16; 5] = [0u16; 5];
+    let p = embassy_stm32::init(Default::default());
+    spawner.must_spawn(adc_task(p));
 
 #[embassy_executor::task]
 async fn adc_task(mut p: Peripherals) {
@@ -118,3 +123,4 @@ async fn adc_task(mut p: Peripherals) {
         }
     }
 }
+*/
