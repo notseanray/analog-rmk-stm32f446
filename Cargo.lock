@@ -15,6 +15,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "analog-multiplexer"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f19df84295ef9157f4c03dab16fef62eae96a9facfc69f5fcd5fc981de4d4659"
+dependencies = [
+ "embedded-hal 0.2.7",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1089,6 +1098,7 @@ dependencies = [
 name = "stm32-rmk"
 version = "0.1.0"
 dependencies = [
+ "analog-multiplexer",
  "chrono",
  "const-gen",
  "cortex-m",

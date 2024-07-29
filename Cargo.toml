@@ -31,6 +31,7 @@ micromath = "2.0.0"
 usbd-hid = "0.8.1"
 static_cell = "2"
 chrono = { version = "^0.4", default-features = false}
+analog-multiplexer = "1.0.2"
 
 [build-dependencies]
 xz2 = "0.1.7"
@@ -54,3 +55,4 @@ debug = true            # no overhead for bare-metal
 opt-level = "z"         # optimize for binary size
 overflow-checks = false
 lto = "fat"
+strip = "symbols"
